@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+
+export JAVA_HOME=/usr/lib/jvm/default-java
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	mkdir -p build; \
+	cmake -S . -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DLauncher_BUILD_PLATFORM=debian \
+		-DLauncher_QT_VERSION_MAJOR=6 \
+		-DLauncher_ENABLE_JAVA_DOWNLOADER=ON \
+		-DBUILD_TESTING=OFF \
+		-DCMAKE_Java_COMPILER="$(JAVA_HOME)/bin/javac" \
+		-DCMAKE_BUILD_TYPE=Release
+
+override_dh_auto_build:
+	cmake --build build
+
+override_dh_auto_test:
+	true
+
+override_dh_auto_install:
+	rm -rf debian/prismlauncher
+	DESTDIR=debian/prismlauncher cmake --install build

@@ -1,0 +1,50 @@
+Source: prismlauncher
+Section: games
+Priority: optional
+Maintainer: Rukkhadevata123 <rukkhadevata@foxmail.com>
+Build-Depends: debhelper-compat (= 13),
+               cmake,
+               default-jdk,
+               extra-cmake-modules,
+               g++,
+               gcc,
+               git,
+               libgl1-mesa-dev,
+               libqt6core5compat6-dev,
+               ninja-build,
+               qt6-base-dev,
+               qt6-networkauth-dev,
+               qtchooser,
+               scdoc,
+               zlib1g-dev
+Standards-Version: 4.7.2
+Homepage: https://prismlauncher.org
+Vcs-Git: https://github.com/PrismLauncher/PrismLauncher.git
+Rules-Requires-Root: no
+
+Package: prismlauncher
+Architecture: amd64
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         libqt6core5compat6,
+         libqt6core6,
+         libqt6network6,
+         libqt6networkauth6,
+         libqt6svg6,
+         libqt6widgets6,
+         libqt6xml6,
+         qt6-image-formats-plugins
+Recommends: default-jre
+Suggests: flite,
+          x11-xserver-utils,
+          gamemode,
+          mangohud
+Description: Minecraft launcher with ability to manage multiple instances
+ PrismLauncher is a custom launcher for Minecraft that allows you to easily
+ manage multiple installations of Minecraft at once. It also allows you to
+ easily install and remove mods by simply dragging and dropping.
+ .
+ This package supports:
+  - Java 8 for Minecraft versions <= 1.16
+  - Java 17 for Minecraft versions >= 1.17 and <= 1.20.4
+  - Java 21 for Minecraft versions >= 1.20.5

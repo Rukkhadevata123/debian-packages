@@ -1,0 +1,5 @@
+Version: 5
+Source: https://api.github.com/repos/PrismLauncher/PrismLauncher/releases?per_page=100
+Matching-Pattern: https://github.com/PrismLauncher/PrismLauncher/releases/download/[^/]+/PrismLauncher-@ANY_VERSION@\.tar\.gz
+Filename-Mangle: s%.*/PrismLauncher-(@ANY_VERSION@)\.tar\.gz%PrismLauncher-$1.tar.gz%
+Search-Mode: plain

@@ -1,0 +1,17 @@
+Source: hmcl
+Section: games
+Priority: optional
+Maintainer: Rukkhadevata123 <rukkhadevata@foxmail.com>
+Build-Depends: debhelper-compat (= 13),
+               default-jdk
+Standards-Version: 4.7.2
+Homepage: https://github.com/HMCL-dev/HMCL
+
+Package: hmcl
+Architecture: all
+Depends: default-jre,
+         hicolor-icon-theme
+Description: A Minecraft Launcher which is multi-functional and cross-platform
+ Hello Minecraft! Launcher (HMCL) is a popular, open-source, and cross-platform
+ Minecraft launcher. It provides features like managing game versions, mods,
+ resource packs, and multiple accounts.

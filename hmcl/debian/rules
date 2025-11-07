@@ -1,0 +1,32 @@
+#!/usr/bin/make -f
+
+export JAVA_HOME=/usr/lib/jvm/default-java
+export GRADLE_USER_HOME=/tmp/.gradle
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	export HMCL_VERSION=$$(dpkg-parsechangelog -S Version | sed 's/-[^-]*$$//'); \
+	export VERSION_TYPE=stable; \
+	echo "Building HMCL version: $${HMCL_VERSION}, type: $${VERSION_TYPE}"; \
+	./gradlew clean makeExecutables --stacktrace --no-daemon
+
+override_dh_auto_install:
+	rm -rf debian/hmcl
+
+	mkdir -p debian/hmcl/usr/bin
+	mkdir -p debian/hmcl/usr/share/applications
+	mkdir -p debian/hmcl/usr/share/java/hmcl
+	mkdir -p debian/hmcl/usr/share/icons/hicolor/32x32/apps
+	mkdir -p debian/hmcl/usr/share/icons/hicolor/64x64/apps
+	mkdir -p debian/hmcl/usr/share/icons/hicolor/128x128/apps
+	mkdir -p debian/hmcl/usr/share/icons/hicolor/256x256/apps
+
+	install -Dm755 debian/hmcl-launch-script debian/hmcl/usr/bin/hmcl
+	install -Dm644 debian/hmcl.desktop debian/hmcl/usr/share/applications/hmcl.desktop
+	install -Dm644 HMCL/build/libs/HMCL*.jar debian/hmcl/usr/share/java/hmcl/hmcl.jar
+	install -Dm644 HMCL/build/resources/main/assets/img/icon.png debian/hmcl/usr/share/icons/hicolor/32x32/apps/hmcl.png || true
+	install -Dm644 HMCL/build/resources/main/assets/img/icon@2x.png debian/hmcl/usr/share/icons/hicolor/64x64/apps/hmcl.png || true
+	install -Dm644 HMCL/build/resources/main/assets/img/icon@4x.png debian/hmcl/usr/share/icons/hicolor/128x128/apps/hmcl.png || true
+	install -Dm644 HMCL/build/resources/main/assets/img/icon@8x.png debian/hmcl/usr/share/icons/hicolor/256x256/apps/hmcl.png || true
