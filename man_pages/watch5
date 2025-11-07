@@ -1,0 +1,834 @@
+AME
+debian/watch version 5 - Format specification for debian/watch.
+
+DESCRIPTION
+This document describe current version format of debian/watch (version 5).
+
+FORMAT OF THE WATCH FILE, VERSION 5
+The version 5 format of debian/watch can be summarized as follows:
+
+File is written using rfc822-style, like other debian files.
+Key names are case-insensitive
+Key names hyphens are ignored. Then Matching-Pattern is equivalent to Matchingpattern
+A line started by # (hash) is a comment line and dropped.
+First paragraph
+•
+The first non-comment line of the first paragraph is:
+Version: 5
+This is a required line and the recommended version number.
+
+•
+All other options inserted into first paragraph are used as default values for next paragraphs
+The following paragraphs (watch sources) specify the rules for the selection of the candidate upstream tarball URLs:
+You can disable uscan temporarily by adding "Untrackable: <reason>"
+  Version: 5
+  Untrackable: temporarily I don't want to update this
+  Source: https://keeped-site-to-be-used-later/
+  Matching-Pattern: .*@ANY_VERSION@@ARCHIVE_EXT@
+    
+The Source: field is required. It gives the URL where uscan will look at candidate upstream tarballs.
+The Matching-Pattern field is recommended. It specifies the full string matching pattern for hrefs in the web page. uscan provides also templates that fill this field automatically (see below). Default value: "(?:@PACKAGE@)?@ANY_VERSION@@ARCHIVE_EXT@".
+Other available fields are described in WATCH FILE OPTIONS.
+
+WATCH FILE OPTIONS
+Substitutions
+There are a few special strings which are substituted by uscan to make it easy to write the watch file.
+
+@PACKAGE@
+This is substituted with the source package name found in the first line of the debian/changelog file.
+@COMPONENT@
+This is subsituted with the component name of the component name that uscan is currently handling. Value is empty if used in main paragraph.
+@ANY_VERSION@
+This is substituted by the generic upstream version regex (capturing).
+  [-_]?[Vv]?(\d[\-+\.:\~\da-zA-Z]*)
+    
+@SEMANTIC_VERSION@
+This is substituted by the regex given by <https://semver.org> (capturing).
+  [-_]?[Vv]?((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?:[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?)
+    
+This permits to accept "semantic versions" (ie ""((MAJOR.MINOR.PATCH)(-PRERELEASE)?(+BUILD)?)""). For example:
+
+1.2.3
+1.2.3-beta.1
+1.2.3-beta.1+build.20250720
+@STABLE_VERSION@
+Stable versions according to the rules of semantic versioning (see <https://semver.org>): this is substituted by pure digit upstream version regex with exactly 3 numbers: "MAJOR.MINOR.PATCH" (capturing).
+  [-_]?[Vv]?((?:[1-9]\d*)(?:\.\d+){2}))
+    
+@ARCHIVE_EXT@
+This is substituted by the typical archive file extension regex (non-capturing).
+  (?i)(?:\.(?:tar\.xz|tar\.bz2|tar\.gz|tar\.zstd?|zip|tgz|tbz|txz))
+    
+@SIGNATURE_EXT@
+This is substituted by the typical signature file extension regex (non-capturing).
+  (?i)(?:\.(?:tar\.xz|tar\.bz2|tar\.gz|tar\.zstd?|zip|tgz|tbz|txz))'(?:\.(?:asc|pgp|gpg|sig|sign))'
+    
+@DEB_EXT@
+This is substituted by the typical Debian extension regexp (capturing).
+  [\+~](debian|dfsg|ds|deb)(\.)?(\d+)?$
+    
+Some file extensions are not included in the above intentionally to avoid false positives. You can still set such file extension patterns manually.
+
+Common options
+Template
+Templates simplify the write of debian/watch files. See uscan-templates(5).
+
+Source <url>
+URL where uscan will look at candidate upstream tarballs (required)
+
+Matching-Pattern: <regex>
+It specifies the full string matching pattern for hrefs in the web page. uscan provides also templates that fill this field automatically (see below):
+
+Version-Schema <schema>
+The following values are accepted:
+
+previous: used when previous source contains Pgp-Mode (see "GPG/PGP options").
+group: Debian version is then built with all sources declared as "Version-Schema: group" (see "Grouped package").
+checksum: see "Grouped package". When "Version-Schema: checksum" is declared in global paragraph, it is applied to all source except the first one which is declared as "group".
+•
+Version-Separator <separator>: string used to assemble component versions when Version-Schema is set to "group" or "checksum". The default value is "+~". This parameter must be in the first paragraph (just after "Version"), else it will be ignored.
+Component options
+Component: <component>
+Set the name of the secondary source tarball as "<spkg>_<oversion>.orig-<component>.tar.gz" for a MUT package (multiple upstream tarballs package).
+Ctype: <component-type>
+Set the type of component (only "nodejs" and "perl" are available for now). This will help uscan to find current version if component version is ignored.
+When using Ctype: nodejs, uscan tries to find a version in "package.json", when using Ctype: perl, uscan tries to find a version in "META.json". If a version is found, it is used as current version for this component, regardless version found in Debian version string. This permits a better change detection when using ignore or checksum as Debian version.
+
+Version-Constraint: <type>
+Add a constraint when downloading the component. Only one value is accepted for now:
+•
+same, version must be identic as main source version
+Repack options
+Compression: <method>
+Set the compression method when the tarball is repacked (persistent).
+Available method values are what mk-origtargz supports, so xz, gzip (alias gz), bzip2 (alias bz2), lzma, default. The default method is currently xz. When uscan is launched in a debian source repository which format is "1.0" or undefined, the method switches to gzip.
+
+Please note the repacking of the upstream tarballs by mk-origtargz happens only if one of the following conditions is satisfied:
+
+USCAN_REPACK is set in the devscripts configuration. See "DEVSCRIPTS CONFIGURATION VARIABLES" in uscan(1).
+--repack is set on the commandline. See "COMMANDLINE OPTIONS" in uscan(1).
+repack is set in the watch line as Repack: yes.
+The upstream archive is of zip type including jar, xpi, ...
+The upstream archive is of zstd (Zstandard) type.
+Files-Excluded or Files-Excluded-component stanzas are set in debian/copyright to make mk-origtargz invoked from uscan remove files from the upstream tarball and repack it. See "COPYRIGHT FILE EXAMPLES" in uscan(1) and mk-origtargz(1).
+Repack
+When set to yes, force repacking of the upstream tarball using the compression method.
+Repacksuffix: <suffix>
+Add suffix to the Debian package upstream version only when the source tarball is repackaged. This rule should be used only for a single upstream tarball package. "+dfsg" or "+ds" or "+repack" are the common values used here (sometime followed by a digit).
++dfsg is used when some non-free files are removed
++ds is used when some files are removed for another reason (useless,...).
++repack is used when source was re-downloaded without version number change
+Unzip-Opt: <options>
+Add the extra options to use with the unzip command, such as -a, -aa, and -b, when executed by mk-origtargz.
+Download options
+Mode: <mode>
+Set the archive download mode.
+LWP
+This mode is the default one which downloads the specified tarball from the archive URL on the web. Automatically internal mode value is updated to either http or ftp by URL.
+git
+This mode accesses the upstream git archive directly with the git command and packs the source tree with the specified tag via matching-pattern into spkg-version.tar.xz.
+If the upstream publishes the released tarball via its web interface, please use it instead of using this mode. This mode is the last resort method.
+
+For git mode, matching-pattern specifies the full string matching pattern for tags instead of hrefs. If matching-pattern is set to refs/tags/tag-matching-pattern, uscan downloads source from the refs/tags/matched-tag of the git repository. The upstream version is extracted from concatenating the matched parts in ( ... ) with . . See "WATCH FILE EXAMPLES".
+
+If matching-pattern is set to HEAD, uscan downloads source from the HEAD of the git repository and the pertinent version is automatically generated with the date and hash of the HEAD of the git repository.
+
+If matching-pattern is set to heads/branch, uscan downloads source from the named branch of the git repository.
+
+The local repository is created temporarily as either a bare git repository or a cloned git repository if Git-Modules is specified. The tarball is then generated from the temporary git repository and saved in the destination directory.
+
+The temporary repository is normally erased after uscan execution but is kept if the --debug option is specified.
+
+If the current directory is a git repository and the searched repository is listed among the registered "remotes", then uscan will use it instead of cloning separately. The only local change is that uscan will run a "fetch" command to refresh the repository.
+
+svn
+This mode accesses the upstream Subversion archive directly with the svn command and packs the source tree.
+For svn mode, matching-pattern specifies the full string matching pattern for directories under Subversion repository directory, specified via URL. The upstream version is extracted from concatenating the matched parts in ( ... ) with . .
+
+If matching-pattern is set to HEAD, uscan downloads the latest source tree of the URL. The upstream version is then constructed by appending the last revision of the URL to 0.0~svn.
+
+As commit signing is not possible with Subversion, the default pgpmode is set to none when mode=svn. Settings of pgpmode other than default and none are reported as errors.
+
+Git options
+
+Git-Pretty: <rule>
+Set the upstream version string to an arbitrary format when the matching-pattern is HEAD or heads/branch for git mode. For the exact syntax, see the git-log manpage under tformat. The default is Git-Pretty: 0.0~git%cd.%h. No version mangling rule is necessary for this case.
+When Git-Pretty: describe is used, the upstream version string is the output of the "git describe --tags | sed s/-/./g" command instead. For example, if the commit is the 5-th after the last tag v2.17.12 and its short hash is ged992511, then the string is v2.17.12.5.ged992511. For this case, it is recommended to add Filename-Mangle: s/^(@PACKAGE@)-/$1-0.0~/ or Filename-Mangle: s/^(@PACKAGE@-)v/$1/ to make the upstream version string suitable for Debian. Please note that in order for Git-Pretty: describe to function well, upstream need to avoid tagging with random alphabetic tags.
+
+Using Git-Pretty: describe also sets Git-Mode: full to make a full local clone of the repository automatically.
+
+Git-Date: <rule>
+Set the date string used by the Git-Pretty option to an arbitrary format when the Matching-Pattern is HEAD or heads/branch for git mode. For the exact syntax, see the strftime manpage. The default is date=%Y%m%d.
+Git-Export: <mode>
+Set the git archive export operation mode. The default is Git-Export: default. Set this to Git-Export: all to include all files in the .orig.tar archive, ignoring any export-ignore git attributes defined by the upstream. This option also applies to submodules, if Git-Modules is specified.
+This option is valid only in git mode.
+
+Git-Mode: <mode>
+Set the git clone operation mode. The default is Git-Mode=shallow. For some dumb git server, you may need to manually set Git-Mode=full to force full clone operation.
+If the current directory is a git repository and the searched repository is listed among the registered "remotes", then uscan will use it instead of cloning separately.
+
+Git-Modules: <modules>
+Clone one or more submodules after cloning the main git repository. By default, uscan will clone none of the linked submodules to the git repository.
+To clone all submodules, set Git-Modules: all.
+
+To clone selected submodules, use a semicolon-separated list. For example: Git-Modules: m4;doc/common.
+
+Bare
+When set to yes, disable all site specific special case code such as URL redirector uses and page content alterations. (persistent)
+GPG/PGP options
+
+Pgp-Mode: <mode>
+Set the OpenPGP signature verification mode.
+auto
+uscan checks possible URLs for the signature file and autogenerates a Pgp-Sig-Url-Mangle rule to use it.
+default
+Use Pgp-Sig-Url-Mangle: <rules> to generate the candidate upstream signature file URL string from the upstream tarball URL. (default)
+If the specified Pgp-Sig-Url-Mangle is missing, uscan checks possible URLs for the signature file and suggests adding a Pgp-Sig-Url-Mangle rule.
+
+mangle
+Use Pgp-Sig-Url-Mangle: <rules> to generate the candidate upstream signature file URL string from the upstream tarball URL.
+next
+Verify this downloaded tarball file with the signature file specified in the next watch line. The next watch line must be Pgp-Mode: previous. Otherwise, no verification occurs.
+previous
+Verify the downloaded tarball file specified in the previous watch line with this signature file. The previous watch line must be Pgp-Mode: next.
+self
+Verify the downloaded file foo.ext with its self signature and extract its content tarball file as foo.
+gittag
+Verify tag signature if mode=git.
+none
+No signature available (No warning).
+Decompress
+When set to yes, decompress compressed archive before the OpenPGP signature verification.
+Parsing options
+
+Search-Mode: <mode>
+Set the parsing search mode:
+html (default): search pattern in "href" parameter of <a> HTML tags
+plain: search pattern in the full page
+This is useful if page content is not HTML but JSON. Example with npmjs.com:
+  Version: 5
+  Search-Mode: plain
+  Source: https://registry.npmjs.org/aes-js
+  Matching-Pattern: https://registry.npmjs.org/aes-js/-/aes-js-(\d[\d\.]*)@ARCHIVE_EXT@
+    
+HTTP options
+
+User-Agent: <user-agent-string>
+Set the user-agent string used to contact the HTTP(S) server as user-agent-string. (persistent)
+Filename and version manipulations
+Dversion-Mangle: <rules>
+Normalize the last upstream version string found in debian/changelog to compare it to the available upstream tarball version. Removal of the Debian specific suffix such as s/@DEB_EXT@// is usually done here.
+You can also use "Dversion-Mangle: auto", this is exactly the same than "Dversion-Mangle: s/@DEB_EXT@//"
+
+Dirversion-Mangle: <rules>
+Normalize the directory path string matching the regex in a set of parentheses of http://URL as the sortable version index string. This is used as the directory path sorting index only.
+Substitution such as s/PRE/~pre/; s/RC/~rc/ may help.
+
+Page-Mangle: <rules>
+Normalize the downloaded web page string. (Don't use this unless this is absolutely needed. Generally, g flag is required for these rules.)
+This is handy if you wish to access Amazon AWS or Subversion repositories in which <a href="..."> is not used.
+
+Uversion-Mangle: <rules>
+Normalize the candidate upstream version strings extracted from hrefs in the source of the web page. This is used as the version sorting index when selecting the latest upstream version.
+Substitution such as s/PRE/~pre/; s/RC/~rc/ may help.
+
+You can also use "Uversion-Mangle: auto", this is exactly the same than "Uversion-Mangle: s/(\d)[_\.\-\+]?((?:RC|rc|pre|dev|beta|alpha)\d*)$/$1~$2/"
+
+Version-Mangle: <rules>
+Syntactic shorthand for:
+  Uversion-Mangle: <rules>
+  Dversion-Mangle: <rules>
+    
+hrefdecode=percent-encoding
+When set to yes, convert the selected upstream tarball href string from the percent-encoded hexadecimal string to the decoded normal URL string for obfuscated web sites. Only percent-encoding is available and it is decoded with s/%([A-Fa-f\d]{2})/chr hex $1/eg.
+Download-Url-Mangle: <rules>
+Convert the selected upstream tarball href string into the accessible URL for obfuscated web sites. This is run after hrefdecode.
+Filename-Mangle: <rules>
+Generate the upstream tarball filename from the selected href string if matching-pattern can extract the latest upstream version <uversion> from the selected href string. Otherwise, generate the upstream tarball filename from its full URL string and set the missing <uversion> from the generated upstream tarball filename.
+Without this option, the default upstream tarball filename is generated by taking the last component of the URL and removing everything after any '?' or '#'.
+
+You can use here "Filename-Mangle: auto", this is exactly the same than "Filename-Mangle: s/.*?(@ANY_VERSION@@ARCHIVE_EXT@)/@PACKAGE@-$1/" for main source or "Filename-Mangle: s/.*?(@ANY_VERSION@@ARCHIVE_EXT@)/@PACKAGE@-@COMPONENT@-$1/" for components.
+
+Pgp-Sig-Url-Mangle: <rules>
+Generate the candidate upstream signature file URL string from the upstream tarball URL.
+Oversion-Mangle: <rules>
+Generate the version string <oversion> of the source tarball <spkg>_<oversion>.orig.tar.gz from <uversion>. This should be used to add a suffix such as +dfsg to a MUT package.
+Here, the mangling rules apply the rules to the pertinent string. Multiple rules can be specified in a mangling rule string by making a concatenated string of each mangling rule separated by ; (semicolon).
+
+Each mangling rule cannot contain ; (semicolon), , (comma), or " (double quote).
+
+Each mangling rule behaves as if a Perl command "$string =~ rule" is executed. There are some notable details.
+
+•
+rule may only use the s, tr, and y operations.
+s/regex/replacement/options
+Regex pattern match and replace the target string. Only the g, i and x flags are available. Use the $1 syntax for back references (No \1 syntax). Code execution is not allowed (i.e. no (?{}) or (??{}) constructs).
+y/source/dest/ or tr/source/dest/
+Transliterate the characters in the target string.
+EXAMPLE OF EXECUTION
+uscan reads the first entry in debian/changelog to determine the source package name and the last upstream version.
+
+For example, if the first entry of debian/changelog is:
+
+•
+bar (3:2.03+dfsg-4) unstable; urgency=low
+then, the source package name is bar and the last Debian package version is 3:2.03+dfsg-4.
+
+The last upstream version is normalized to 2.03+dfsg by removing the epoch and the Debian revision.
+
+If the Dversion-Mangle rule exists, the last upstream version is further normalized by applying this rule to it. For example, if the last upstream version is 2.03+dfsg indicating the source tarball is repackaged, the suffix +dfsg is removed by the string substitution s/\+dfsg\d*$// to make the (Dversion-Mangled) last upstream version 2.03 and it is compared to the candidate upstream tarball versions such as 2.03, 2.04, ... found in the remote site. Thus, set this rule as:
+
+  Dversion-Mangle: s/\+dfsg\d*$//
+uscan downloads a web page from http://URL specified in Source: field.
+
+If the directory name part of Source: has no parentheses, ( and ), it is taken as verbatim.
+If the directory name part of Source: has parentheses, ( and ), then uscan recursively searches all possible directories to find a page for the newest version. If a Dirversion-Mangle rule exists, the generated sorting index is used to find the newest version. If a specific version is specified for the download, the matching version string has priority over the newest version.
+For example, this Source: http://URL may be specified as:
+
+  Source: http://www.example.org/@ANY_VERSION@/
+Please note the trailing / in the above to make @ANY_VERSION@ as the directory.
+
+If the Page-Mangle rule exists, the whole downloaded web page as a string is normalized by applying this rule to it. This is very powerful tool and needs to be used with caution. If other mangling rules can be used to address your objective, do not use this rule.
+
+The downloaded web page is scanned for hrefs defined in the <a href=" ... "> tag to locate the candidate upstream tarball hrefs. These candidate upstream tarball hrefs are matched by the Perl regex pattern matching-pattern such as DL-(?:[\d\.]+?)/foo-(.+)\.tar\.gz to narrow down the candidates. This pattern match needs to be anchored at the beginning and the end. For example, candidate hrefs may be:
+
+DL-2.02/foo-2.02.tar.gz
+DL-2.03/foo-2.03.tar.gz
+DL-2.04/foo-2.04.tar.gz
+Here the matching string of (.+) in matching-pattern is considered as the candidate upstream version. If there are multiple matching strings of capturing patterns in matching-pattern, they are all concatenated with . (period) to form the candidate upstream version. Make sure to use the non-capturing regex such as (?:[\d\.]+?) instead for the variable text matching part unrelated to the version.
+
+Then, the candidate upstream versions are:
+
+2.02
+2.03
+2.04
+The downloaded tarball filename is basically set to the same as the filename in the remote URL of the selected href.
+
+If the Uversion-Mangle rule exists, the candidate upstream versions are normalized by applying this rule to them. (This rule may be useful if the upstream version scheme doesn't sort correctly to identify the newest version.)
+
+The upstream tarball href corresponding to the newest (Uversion-Mangled) candidate upstream version newer than the (Dversion-Mangled) last upstream version is selected.
+
+If multiple upstream tarball hrefs corresponding to a single version with different extensions exist, the highest compression one is chosen. (Priority: tar.xz > tar.lzma > tar.bz2 > tar.gz.)
+
+If the selected upstream tarball href is the relative URL, it is converted to the absolute URL using the base URL of the web page. If the <base href=" ... "> tag exists in the web page, the selected upstream tarball href is converted to the absolute URL using the specified base URL in the base tag, instead.
+
+If the Download-Url-Mangle rule exists, the selected upstream tarball href is normalized by applying this rule to it. (This is useful for some sites with the obfuscated download URL.)
+
+If the Filename-Mangle rule exists, the downloaded tarball filename is generated by applying this rule to the selected href if matching-pattern can extract the latest upstream version <uversion> from the selected href string. Otherwise, generate the upstream tarball filename from its full URL string and set the missing <uversion> from the generated upstream tarball filename.
+
+Without the Filename-Mangle rule, the default upstream tarball filename is generated by taking the last component of the URL and removing everything after any '?' or '#'.
+
+uscan downloads the selected upstream tarball to the parent ../ directory. For example, the downloaded file may be:
+
+•
+../foo-2.04.tar.gz
+Let's call this downloaded version 2.04 in the above example generically as <uversion> in the following.
+
+If the Pgp-Sig-Url-Mangle rule exists, the upstream signature file URL is generated by applying this rule to the (Download-Url-Mangled) selected upstream tarball href and the signature file is tried to be downloaded from it.
+
+If the Pgp-Sig-Url-Mangle rule doesn't exist, uscan warns user if the matching upstream signature file is available from the same URL with their filename being suffixed by the 5 common suffix asc, sig, sign, pgp and gpg. (You can avoid this warning by setting Pgp-Mode: none.)
+
+If the signature file is downloaded, the downloaded upstream tarball is checked for its authenticity against the downloaded signature file using the armored keyring debian/upstream/signing-key.asc (see "KEYRING FILE EXAMPLES" in uscan(1)). If its signature is not valid, or not made by one of the listed keys, uscan will report an error.
+
+If the Oversion-Mangle rule exists, the source tarball version oversion is generated from the downloaded upstream version uversion by applying this rule. This rule is useful to add suffix such as +dfsg to the version of all the source packages of the MUT package for which the Repack-Suffix mechanism doesn't work.
+
+uscan invokes mk-origtargz to create the source tarball properly named for the source package with .orig. (or .orig-<component>. for the secondary tarballs) in its filename.
+
+case A: packaging of the upstream tarball as is
+mk-origtargz creates a symlink ../bar_<oversion>.orig.tar.gz linked to the downloaded local upstream tarball. Here, bar is the source package name found in debian/changelog. The generated symlink may be:
+•
+../bar_2.04.orig.tar.gz -> foo-2.04.tar.gz (as is)
+Usually, there is no need to set up Dversion-Mangle: ... for this case.
+
+case B: packaging of the upstream tarball after removing non-DFSG files
+mk-origtargz checks the filename glob of the Files-Excluded stanza in the first section of debian/copyright, removes matching files to create a repacked upstream tarball. Normally, the repacked upstream tarball is renamed with suffix to ../bar_<oversion><suffix>.orig.tar.gz using the Repack-Suffix: option for the single upstream package. Here <oversion> is updated to be <oversion><suffix>.
+The removal of files is required if files are not DFSG-compliant. For such case, +dfsg is used as suffix.
+
+So the combined options are set as
+
+  Dversion-Mangle: s/\+dfsg\d*$//
+  Repack-Suffix: +dfsg">
+    
+For example, the repacked upstream tarball may be:
+
+•
+../bar_2.04+dfsg.orig.tar.gz (repackaged)
+uscan normally invokes "uupdate --find --upstream-version oversion".
+
+Please note that --find option is used here since mk-origtargz has been invoked to make *.orig.tar.gz file already. uscan picks bar from debian/changelog.
+
+It creates the new upstream source tree under the ../bar-<oversion> directory and Debianize it leveraging the last package contents.
+
+WATCH FILE EXAMPLES
+When writing the watch file, you should rely on the latest upstream source announcement web page. You should not try to second guess the upstream archive structure if possible. Here are the typical debian/watch files.
+
+Please note that executing uscan with -v or -vv reveals what exactly happens internally.
+
+The existence and non-existence of a space the before tailing \ (back slash) are significant.
+
+Some undocumented shorter configuration strings are used in the below EXAMPLES to help you with typing. These are intentional ones. uscan is written to accept such common sense abbreviations but don't push the limit.
+
+HTTP site (basic)
+Here is an example for the basic single upstream tarball.
+
+  Version: 5
+  Source: http://example.com/~user/release/@PACKAGE@.html
+  Matching-Pattern: files/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
+Or without using the substitution strings (not recommended):
+
+  Version: 5
+  Source: http://example.com/~user/release/foo.html
+  Matching-Pattern: files/foo-([\d\.]+)\.tar\.gz
+For the upstream source package foo-2.0.tar.gz, this watch file downloads and creates the Debian orig.tar file foo_2.0.orig.tar.gz.
+
+HTTP site (Pgp-Sig-Url-Mangle)
+Here is an example for the basic single upstream tarball with the matching signature file in the same file path.
+
+  Version: 5
+  Source: http://example.com/release/@PACKAGE@.html
+  Matching-Pattern: files/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
+  Pgp-Sig-Url-Mangle: s%$%.asc%
+For the upstream source package foo-2.0.tar.gz and the upstream signature file foo-2.0.tar.gz.asc, this watch file downloads these files, verifies the authenticity using the keyring debian/upstream/signing-key.asc and creates the Debian orig.tar file foo_2.0.orig.tar.gz.
+
+Here is another example for the basic single upstream tarball with the matching signature file on decompressed tarball in the same file path.
+
+  Version: 5
+  Source: http://example.com/release/@PACKAGE@.html
+  Matching-Pattern: files/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
+  Pgp-Sig-Url-Mangle: s%@ARCHIVE_EXT@$%.asc%
+  Decompress: yes
+For the upstream source package foo-2.0.tar.gz and the upstream signature file foo-2.0.tar.asc, this watch file downloads these files, verifies the authenticity using the keyring debian/upstream/signing-key.asc and creates the Debian orig.tar file foo_2.0.orig.tar.gz.
+
+HTTP site (Pgp-Mode: next/previous)
+Here is an example for the basic single upstream tarball with the matching signature file in the unrelated file path.
+
+  Version: 5
+  Source: http://example.com/release/@PACKAGE@.html
+  Matching-Pattern: files/(?:\d+)/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
+  Pgp-Mode: next
+  Source: http://example.com/release/@PACKAGE@.html
+  Matching-Pattern: .*?files/(?:\d+)/@PACKAGE@@ANY_VERSION@@SIGNATURE_EXT@
+  Pgp-Mode: previous
+  Version-Schema: previous
+(?:\d+) part can be any random value. The tarball file can have 53, while the signature file can have 33.
+
+([\d\.]+) part for the signature file has a strict requirement to match that for the upstream tarball specified in the previous line by having previous as version in the watch line.
+
+HTTP site (flexible)
+Here is an example for the maximum flexibility of upstream tarball and signature file extensions.
+
+  Version: 5
+  Source: http://example.com/DL/
+  Matching-Pattern: files/(?:\d+)/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
+  Pgp-Mode: next
+  Source: http://example.com/DL/
+  Matching-Pattern: files/(?:\d+)/@PACKAGE@@ANY_VERSION@@SIGNATURE_EXT@
+  Pgp-Mode: previous
+  Version-Schema: previous
+HTTP site (basic MUT)
+Here is an example for the basic multiple upstream tarballs.
+
+  Version: 5
+  Source: http://example.com/release/foo.html
+  Matching-Pattern: files/foo-@ANY_VERSION@@ARCHIVE_EXT@
+  Pgp-Sig-Url-Mangle: s%$%.sig%
+  Component: bar
+  Source: http://example.com/release/foo.html
+  Matching-Pattern: files/foobar-@ANY_VERSION@@ARCHIVE_EXT@
+  Pgp-Sig-Url-Mangle: s%$%.sig%
+  Version-Constraint: same
+  Component: baz
+  Source: http://example.com/release/foo.html
+  Matching-Pattern: files/foobaz-@ANY_VERSION@@ARCHIVE_EXT@
+  Pgp-Sig-Url-Mangle: s%$%.sig%
+  Version-Constraint: same
+For the main upstream source package foo-2.0.tar.gz and the secondary upstream source packages foobar-2.0.tar.gz and foobaz-2.0.tar.gz which install under bar/ and baz/, this watch file downloads and creates the Debian orig.tar file foo_2.0.orig.tar.gz, foo_2.0.orig-bar.tar.gz and foo_2.0.orig-baz.tar.gz. Also, these upstream tarballs are verified by their signature files.
+
+HTTP site (recursive directory scanning)
+Here is an example with the recursive directory scanning for the upstream tarball and its signature files released in a directory named after their version.
+
+  Version: 5
+  Source: http://tmrc.mit.edu/mirror/twisted/Twisted/@ANY_VERSION@/
+  Matching-Pattern: Twisted-@ANY_VERSION@@ARCHIVE_EXT@
+  Dirversion-Mangle: s/-PRE/~pre/;s/-RC/~rc/
+  Pgp-Sig-Url-Mangle: s%$%.sig%
+Here, the web site should be accessible at the following URL:
+
+  http://tmrc.mit.edu/mirror/twisted/Twisted/
+Here, Dirversion-Mangle option is used to normalize the sorting order of the directory names.
+
+HTTP site (alternative shorthand)
+For the bare HTTP site where you can directly see archive filenames, the normal watch file:
+
+  Version: 5
+  Source: http://www.cpan.org/modules/by-module/Text/
+  Matching-Pattern: Text-CSV_XS-@ANY_VERSION@@ARCHIVE_EXT@
+  Pgp-Sig-Url-Mangle: s%$%.sig%
+can be rewritten in an alternative shorthand form only with a single string covering URL and filename:
+
+  Version: 5
+  Source: http://www.cpan.org/modules/by-module/Text/
+  Matching-Pattern: Text-CSV_XS-@ANY_VERSION@@ARCHIVE_EXT@
+  Pgp-Sig-Url-Mangle: s%$%.sig%
+HTTP site (funny version)
+For a site which has funny version numbers, the parenthesized groups will be joined with . (period) to make a sanitized version number.
+
+  Version: 5
+  Source: http://www.site.com/pub/foobar/
+  Matching-Pattern: foobar_v(\d+)_(\d+)@ARCHIVE_EXT@
+HTTP site (DFSG)
+The upstream part of the Debian version number can be mangled to indicate the source package was repackaged to clean up non-DFSG files:
+
+  Version: 5
+  Source: http://some.site.org/some/path/
+  Matching-Pattern: foobar-@ANY_VERSION@@ARCHIVE_EXT@
+  Dversion-Mangle: s/\+dfsg\d*$//
+  Repacksuffix: +dfsg
+See "COPYRIGHT FILE EXAMPLES" in uscan(1).
+
+HTTP site (Filename-Mangle)
+The upstream tarball filename is found by taking the last component of the URL and removing everything after any '?' or '#'.
+
+If this does not fit to you, use Filename-Mangle. For example, <A href="http://foo.bar.org/dl/?path=&dl=foo-0.1.1.tar.gz"> could be handled as:
+
+  Version: 5
+  Source: http://foo.bar.org/dl/
+  Matching-Pattern: \?path=&dl=foo-@ANY_VERSION@@ARCHIVE_EXT@
+  Filename-Mangle: s/.*=(.*)/$1/
+<A href="http://foo.bar.org/dl/?path=&dl_version=0.1.1"> could be handled as:
+
+  Version: 5
+  Source: http://foo.bar.org/dl/
+  Matching-Pattern: \?path=&dl_version=@ANY_VERSION@
+  Filename-Mangle: s/.*=(.*)/foo-$1\.tar\.gz/
+If the href string has no version using matching-pattern, the version can be obtained from the full URL using Filename-Mangle.
+
+  Version: 5
+  Source: http://foo.bar.org/dl/@ANY_VERSION@/
+  Matching-Pattern: foo.tar.gz
+  Filename-Mangle: s|.*/dl/(.*)/foo\.tar\.gz|foo-$1\.tar\.gz|
+HTTP site (Download-Url-Mangle)
+The option Download-Url-Mangle can be used to mangle the URL of the file to download. This can only be used with http:// URLs. This may be necessary if the link given on the web page needs to be transformed in some way into one which will work automatically, for example:
+
+  Version: 5
+  Source: http://developer.berlios.de/project/showfiles.php?group_id=2051
+  Matching-Pattern: http://prdownload.berlios.de/softdevice/vdr-softdevice-@ANY_VERSION@@ARCHIVE_EXT@
+  Download-Url-Mangle: s/prdownload/download/
+HTTP site (Oversion-Mangle, MUT)
+The option Oversion-Mangle can be used to mangle the version of the source tarball (.orig.tar.gz and .orig-bar.tar.gz). For example, +dfsg can be added to the upstream version as:
+
+  Version: 5
+  Source: http://example.com/~user/release/foo.html
+  Matching-Pattern: files/foo-@ANY_VERSION@@ARCHIVE_EXT@
+  Oversion-Mangle: s/(.*)/$1+dfsg/
+  Component: bar
+  Source: http://example.com/~user/release/foo.html
+  Matching-Pattern: files/bar-@ANY_VERSION@@ARCHIVE_EXT@
+  Version-Constraint: same
+See "COPYRIGHT FILE EXAMPLES" in uscan(1).
+
+HTTP site (Page-Mangle)
+The option Page-Mangle can be used to mangle the downloaded web page before applying other rules. The non-standard web page without proper <a href=" << ... >> "> entries can be converted. For example, if foo.html uses <a bogus=" ... ">, this can be converted to the standard page format with:
+
+  Version: 5
+  Source: href=/g"
+  Matching-Pattern: http://example.com/release/foo.html
+  Page-Mangle: "s/<a\s+bogus=/<a
+  Version-Constraint: files/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
+Please note the use of g here to replace all occurrences.
+
+If foo.html uses <Key> ... </Key>, this can be converted to the standard page format with:
+
+  Version: 5
+  Source: http://example.com/release/foo.html
+  Matching-Pattern: (?:.*)/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
+  Page-Mangle: s%<Key>([^<]*)</Key>%<Key><a href="$1">$1</a></Key>%g
+FTP site (basic):
+  Version: 5
+  Source: ftp://ftp.tex.ac.uk/tex-archive/web/c_cpp/cweb/
+  Matching-Pattern: cweb-@ANY_VERSION@@ARCHIVE_EXT@
+FTP site (regex special characters):
+  Version: 5
+  Source: ftp://ftp.worldforge.org/pub/worldforge/libs/Atlas-C++/transitional/
+  Matching-Pattern: Atlas-C\+\+-@ANY_VERSION@@ARCHIVE_EXT@
+Please note that this URL is connected to be ... libs/Atlas-C++/ ... . For ++, the first one in the directory path is verbatim while the one in the filename is escaped by \.
+
+FTP site (funny version)
+This is another way of handling site with funny version numbers, this time using mangling. (Note that multiple groups will be concatenated before mangling is performed, and that mangling will only be performed on the basename version number, not any path version numbers.)
+
+  Version: 5
+  Source: ftp://ftp.ibiblio.org/pub/Linux/ALPHA/wine/development/
+  Matching-Pattern: Wine-@ANY_VERSION@@ARCHIVE_EXT@
+  Uversion-Mangle: s/^/0.0./
+sf.net
+For SourceForge based projects, qa.debian.org runs a redirector which allows a simpler form of URL. The format below will automatically be rewritten to use the redirector with the watch file:
+
+  Version: 5
+  Source: https://sf.net/<project>/
+  Matching-Pattern: <tar-name>-@ANY_VERSION@@ARCHIVE_EXT@
+For audacity, set the watch file as:
+
+  Version: 5
+  Source: https://sf.net/audacity/
+  Matching-Pattern: audacity-minsrc-@ANY_VERSION@@ARCHIVE_EXT@
+Please note, you can still use normal functionalities of uscan to set up a watch file for this site without using the redirector.
+
+  Version: 5
+  Source: http://sourceforge.net/projects/audacity/files/audacity/@ANY_VERSION@/
+  Matching-Pattern: (?:.*)audacity-minsrc-@ANY_VERSION@@ARCHIVE_EXT@/download
+  Filename-Mangle: s%(?:.*)audacity-minsrc-(.+)\.tar\.xz/download%audacity-$1.tar.xz%
+  Uversion-Mangle: s/-pre/~pre/
+Here, % is used as the separator instead of the standard /.
+
+github.com
+For GitHub based projects, you can use the releases or tags API page. If upstream releases properly named tarballs on their releases page, you can search for the browser download URL (API key browser_download_url):
+
+  Version: 5
+  Template: Github
+  Owner: <user>
+  Project: <project>
+which is equivalent to:
+
+  Version: 5
+  Source: https://api.github.com/repos/<user>/<project>/git/matching-refs/tags/
+  Matching-Pattern: https://api.github.com/repos/[^/]+/[^/]+/git/refs/tags/@ANY_VERSION@
+  Download-Url-Mangle: s%(api.github.com/repos/[^/]+/[^/]+)/git/refs/%$1/tarball/refs/%g
+  Filename-Mangle: s%.*/@ANY_VERSION@%@PACKAGE@-$1.tar.gz%
+  Search-Mode: plain
+  Pgp-Mode: plain
+See uscan-templates(5) for more.
+
+It is also possible to filter tags by prefix. For example to get only tags starting by "v1":
+
+  Version: 5
+  Source: https://api.github.com/repos/<user>/<project>/git/matching-refs/tags/v1
+  Matching-Pattern: https://api.github.com/repos/[^/]+/[^/]+/git/refs/tags/@ANY_VERSION@
+  Download-Url-Mangle: s%(api.github.com/repos/[^/]+/[^/]+)/git/refs/%$1/tarball/refs/%g
+  Filename-Mangle: s%.*/@ANY_VERSION@%@PACKAGE@-$1.tar.gz%
+  Searchmode: plain
+Alternatives with releases only (if upstream does not delete tag after release):
+
+  Version: 5
+  Source: https://api.github.com/repos/<user>/<project>/git/matching-refs/tags/
+  Matching-Pattern: https://api.github.com/repos/[^/]+/[^/]+/git/refs/tags/@ANY_VERSION@
+  Download-Url-Mangle: s%api.github.com/repos/([^/]+/[^/]+)/git/refs/tags/@ANY_VERSION@%github.com/$1/archive/refs/tags/$2.tar.gz%g
+  Filename-Mangle: s%.*/@ANY_VERSION@%@PACKAGE@-$1.tar.gz%
+  Searchmode: plain
+In case of release that does not use tags or deleted tags:
+
+  Version: 5
+  Source: https://api.github.com/repos/<user>/<project>/releases?per_page=100
+  Matching-Pattern: https://api.github.com/repos/<user>/<project>/tarball/@ANY_VERSION@
+  Filename-Mangle: s%.*/@ANY_VERSION@%@PACKAGE@-$1.tar.gz%
+  Searchmode: plain
+If upstream releases alpha/beta tarballs, you will need to make use of the Uversion-Mangle option: Uversion-Mangle: s/(a|alpha|b|beta|c|dev|pre|rc)/~$1/
+
+If upstream forget to tag a release for instance here the 1.2.3 version corresponding to commit "0123456789abcdf01234567890abcef012345678", you could download it, using the following combination of Oversion-Mangle, Filename-Mangle, Download-Url-Mangle options:
+
+  Version: 5
+  Source: https://api.github.com/repos/ImageMagick/ImageMagick/git/matching-refs/tags/
+  Matching-Pattern: https://api.github.com/repos/[^/]+/[^/]+/git/refs/tags/@ANY_VERSION@
+  Download-Url-Mangle: s%(api.github.com/repos/[^/]+/[^/]+)/git/refs/.*%$1/tarball/0123456789abcdf01234567890abcef012345678%g
+  Filename-Mangle: s%.*%1.2.3~git.tar.gz%
+  Oversion-Mangle: s/.*/1.2.3~git/g
+  Searchmode: plain
+Remember, in this case, after gbp import-orig --uscan to revert the debian/watch file.
+
+Forgejo (Codeberg)
+Releases with manually-attached tarballs (assets[...].browser_download_url):
+
+  Version: 5
+  Source: https://codeberg.org/api/v1/repos/<user>/<project>/releases
+  Matching-Pattern: https://codeberg.org/<user>/<project>/releases/download/[^/-_v]*@ANY_VERSION@/[^"]*@ARCHIVE_EXT@
+  Search-Mode: plain
+Releases with automatically-generated tarballs (tarball_url):
+
+  Version: 5
+  Source: https://codeberg.org/api/v1/repos/<user>/<project>/releases
+  Matching-Pattern: https://codeberg.org/<user>/<project>/archive/[^"-_v]*@ANY_VERSION@@ARCHIVE_EXT@
+  Search-Mode: plain
+  Filename-Mangle: s%.*/[^"-_v]*@ANY_VERSION@%@PACKAGE@-$1%
+Tags with automatically-generated tarballs (tarball_url):
+
+  Version: 5
+  Source: https://codeberg.org/api/v1/repos/<user>/<project>/tags
+  Matching-Pattern: https://codeberg.org/<user>/<project>/archive/[^"-_v]*@ANY_VERSION@@ARCHIVE_EXT@
+  Search-Mode: plain
+  Filename-Mangle: s%.*/[^"-_v]*@ANY_VERSION@%@PACKAGE@-$1%
+Replace codeberg.org with the Forgejo instance in question.
+
+PyPI
+For PyPI based projects, pypi.debian.net runs a redirector which allows a simpler form of URL. The format below will automatically be rewritten to use the redirector with the watch file:
+
+  Version: 5
+  Source: https://pypi.python.org/packages/source/<initial>/<project>/
+  Matching-Pattern: <tar-name>-@ANY_VERSION@@ARCHIVE_EXT@
+For cfn-sphere, set the watch file as:
+
+  Version: 5
+  Source: https://pypi.python.org/packages/source/c/cfn-sphere/
+  Matching-Pattern: cfn-sphere-@ANY_VERSION@@ARCHIVE_EXT@
+Please note, you can still use normal functionalities of uscan to set up a watch file for this site without using the redirector.
+
+  Version: 5
+  Source: https://pypi.python.org/pypi/cfn-sphere/
+  Matching-Pattern: https://pypi.python.org/packages/.*/.*/.*/cfn-sphere-@ANY_VERSION@@ARCHIVE_EXT@#.*
+code.google.com
+Sites which used to be hosted on the Google Code service should have migrated to elsewhere (github?). Please look for the newer upstream site if available.
+
+npmjs.org (node modules)
+npmjs.org modules are published in JSON files. Here is a way to read them:
+
+  Version: 5
+  Template: Npmregistry
+  Dist: @lemonldap/handler
+See uscan-templates(5) for more.
+
+Grouped package
+Some node modules are split into multiple little upstream package. Here is a way to group them:
+
+  Version: 5
+  Version-Schema: group
+  Source: https://registry.npmjs.org/mongodb
+  Matching-Pattern: https://registry.npmjs.org/mongodb/-/mongodb-@ANY_VERSION@@ARCHIVE_EXT@
+  Searchmode: plain
+  Component: bson
+  Source: https://registry.npmjs.org/bson
+  Matching-Pattern: https://registry.npmjs.org/bson/-/bson-@ANY_VERSION@@ARCHIVE_EXT@
+  Searchmode: plain
+  Component: mongodb-core
+  Source: https://registry.npmjs.org/mongodb-core
+  Matching-Pattern: https://registry.npmjs.org/mongodb-core/-/mongodb-core-@ANY_VERSION@@ARCHIVE_EXT@
+  Searchmode: plain
+  Component: requireoptional
+  Source: https://registry.npmjs.org/require_optional
+  Matching-Pattern: https://registry.npmjs.org/require_optional/-/require_optional-@ANY_VERSION@@ARCHIVE_EXT@
+  Searchmode: plain
+Package version is then the concatenation of upstream versions separated by "+~".
+
+To avoid having a too long version, the "checksum" method can be used. In this case, the main source is automatically declared as "group":
+
+  Version: 5
+  Version-Schema: checksum
+  Source: https://registry.npmjs.org/mongodb
+  Matching-Pattern: https://registry.npmjs.org/mongodb/-/mongodb-@ANY_VERSION@@ARCHIVE_EXT@
+  Searchmode: plain
+  Component: bson
+  Source: https://registry.npmjs.org/bson
+  Matching-Pattern: https://registry.npmjs.org/bson/-/bson-@ANY_VERSION@@ARCHIVE_EXT@
+  Searchmode: plain
+  Component: mongodb-core
+  Source: https://registry.npmjs.org/mongodb-core
+  Matching-Pattern: https://registry.npmjs.org/mongodb-core/-/mongodb-core-@ANY_VERSION@@ARCHIVE_EXT@
+  Searchmode: plain
+  Component: requireoptional
+  Source: https://registry.npmjs.org/require_optional
+  Matching-Pattern: https://registry.npmjs.org/require_optional/-/require_optional-@ANY_VERSION@@ARCHIVE_EXT@
+  Searchmode: plain
+The "checksum" is made up of the separate sum of each number composing the component versions and prefixed with ~cs (short for checksum). Following is an example with 3 components whose versions are "1.2.4", "2.0.1" and "10.0", with the main tarball having version "2.0.6":
+
+  Main: 2.0.6
+  Comp1:         1 .     2 .     4
+  Comp2:         2 .     0 .     1
+  Comp3:        10 .     0
+  ================================
+  Result  : 1+2+10 . 2+0+0 .   4+1
+  Checksum:     13 .     2 .     5
+  ================================
+  Final Version:   2.0.6+~cs13.2.5
+uscan will also display the original version string before being encoded into the checksum, which can for example be used in a debian/changelog entry to easily follow the changes:
+
+  2.0.6+~1.2.4+~2.0.1+~10.0
+Note: This feature currently accepts only versions composed of digits and full stops (`.`).
+
+direct access to the git repository (tags)
+If the upstream only publishes its code via the git repository and its code has no web interface to obtain the release tarball, you can use uscan with the tags of the git repository to track and package the new upstream release.
+
+  Version: 5
+  Source: http://git.ao2.it/tweeper.git
+  Matching-Pattern: refs/tags/v@ANY_VERSION@
+  Git-Mode: full
+  Mode: git
+Please note "git ls-remote" is used to obtain references for tags.
+
+If a tag v20.5 is the newest tag, the above example downloads spkg-20.5.tar.xz after making a full clone of the git repository which is needed for dumb git server.
+
+If tags are signed, set Pgp-Mode: gittag to verify them.
+
+direct access to the git repository (HEAD)
+If the upstream only publishes its code via the git repository and its code has no web interface nor the tags to obtain the released tarball, you can use uscan with the HEAD of the git repository to track and package the new upstream release with an automatically generated version string.
+
+  Version: 5
+  Source: https://github.com/Debian/dh-make-golang
+  Matching-Pattern: HEAD
+  Mode: git
+Please note that a local shallow copy of the git repository is made with "git clone --bare --depth=1 ..." normally in the target directory. uscan generates the new upstream version with "git log --date=format:%Y%m%d --pretty=0.0~git%cd.%h" on this local copy of repository as its default behavior.
+
+The generation of the upstream version string may the adjusted to your taste by adding Git-Pretty and Git-Date options.
+
+direct access to the git repository (with submodules)
+If the upstream only publishes its code via a git repository and the repository includes submodules, you can use uscan with the tags or HEAD of the git repository to track and package the new upstream release.
+
+Use Git-Modules to clone all submodules:
+
+  Version: 5
+  Source: https://github.com/namespace/project
+  Matching-Pattern: [refs/tags/v@ANY_VERSION@|HEAD]
+  Git-Mode: shallow
+  Git-Modules: all
+  Mode: git
+To clone selected submodules (and exclude others), use Git-Modules with a semicolon-separated list:
+
+  Version: 5
+  Source: https://github.com/namespace/project
+  Matching-Pattern: [refs/tags/v@ANY_VERSION@|HEAD]
+  Git-Mode: shallow
+  Git-Modules: m4;doc/common
+  Mode: git
+direct access to the Subversion repository (tags)
+If the upstream only publishes its code via the Subversion repository and its code has no web interface to obtain the release tarball, you can use uscan with the tags of the Subversion repository to track and package the new upstream release.
+
+  Version: 5
+  Source: svn://svn.code.sf.net/p/jmol/code/tags/
+  Matching-Pattern: @ANY_VERSION@\/
+  Mode: svn
+direct access to the Subversion repository (HEAD)
+If the upstream only publishes its code via the Subversion repository and its code has no web interface to obtain the release tarball, you can use uscan to get the most recent source of a subtree in the repository with an automatically generated version string.
+
+  Source: svn://svn.code.sf.net/p/jmol/code/trunk/
+  Matching-Pattern: HEAD
+  Mode: svn
+By default, uscan generates the new upstream version by appending the revision number to "0.0~svn". This can later be changed using Filename-Mangle.
+
+Fossil
+For Fossil based projects, the tarball URL can be deduced from the taglist page.
+
+  Version: 5
+  Source: http://grammalecte.net:8080/taglist
+  Matching-Pattern: /timeline\?t=@ANY_VERSION@
+  Download-Url-Mangle: s#/timeline\?t=(@ANY_VERSION@)#/tarball/Grammalecte.tar.gz?r=$1#
+  Filename-Mangle: s/timeline\?t=(@ANY_VERSION@)/@PACKAGE@-$1.tar.gz/
+  Searchmode: plain
+Gitlab
+Gitlab uses a specific way to expose archive corresponding to tags. Uscan embeds a Mode: gitlab to be able to download such archives. Examples:
+
+Using templates
+  Version: 5
+  Template: Gitlab
+  Dist: https://salsa.debian.org/debian/devscripts
+    
+Using Mode: gitlab
+  Version: 5
+  Source: https://salsa.debian.org/debian/devscripts
+  Mode: gitlab
+  Matching-Pattern: @STABLE_VERSION@
+  Pgp-Mode: none
+  Filename-Mangle: s/.*(@ARCHIVE_EXT@)/@PACKAGE@.tar.gz/
+    
+SEE ALSO
+uscan(1), uscan-templates(5), mk-origtargz(1), perlre(1), uupdate(1), devscripts.conf(5)
+
+AUTHOR
+The original version of uscan was written by Christoph Lameter <clameter@debian.org>. Significant improvements, changes and bugfixes were made by Julian Gilbey <jdg@debian.org>. HTTP support was added by Piotr Roszatycki <dexter@debian.org>. The program was rewritten in Perl by Julian Gilbey. Xavier Guimard converted it in object-oriented Perl using Moo.
+
+2025-08-22	Debian Utilities

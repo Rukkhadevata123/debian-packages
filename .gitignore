@@ -1,0 +1,16 @@
+*
+
+!.gitignore
+
+!README.md
+
+!hmcl/
+!hmcl/debian/
+!hmcl/debian/**
+
+!prismlauncher/
+!prismlauncher/debian/
+!prismlauncher/debian/**
+
+!man_pages/
+!man_pages/**
