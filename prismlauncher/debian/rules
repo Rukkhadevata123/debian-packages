@@ -23,5 +23,5 @@ override_dh_auto_test:
 	true
 
 override_dh_auto_install:
-	rm -rf debian/prismlauncher
+	install -Dm644 debian/copyright debian/prismlauncher/usr/share/doc/prismlauncher/copyright
 	DESTDIR=debian/prismlauncher cmake --install build
