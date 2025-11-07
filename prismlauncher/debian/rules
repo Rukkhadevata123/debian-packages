@@ -6,6 +6,7 @@ export JAVA_HOME=/usr/lib/jvm/default-java
 	dh $@
 
 override_dh_auto_configure:
+	rm -f libraries/zlib/contrib/dotzlib/DotZLib.chm; \
 	mkdir -p build; \
 	cmake -S . -B build -G Ninja \
 		-DCMAKE_INSTALL_PREFIX=/usr \

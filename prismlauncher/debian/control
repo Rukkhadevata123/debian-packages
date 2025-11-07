@@ -1,15 +1,13 @@
 Source: prismlauncher
-Section: games
+Section: utils
 Priority: optional
 Maintainer: Rukkhadevata123 <rukkhadevata@foxmail.com>
 Build-Depends: debhelper-compat (= 13),
                cmake,
                default-jdk,
                extra-cmake-modules,
-               g++,
-               gcc,
                git,
-               libgl1-mesa-dev,
+               libgl-dev,
                libqt6core5compat6-dev,
                ninja-build,
                qt6-base-dev,
