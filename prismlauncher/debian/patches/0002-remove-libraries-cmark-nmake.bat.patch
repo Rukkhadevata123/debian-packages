@@ -1,0 +1,14 @@
+From: Rukkhadevata123 <rukkhadevata@foxmail.com>
+Date: Fri, 7 Nov 2025 21:35:53 +0800
+Subject: remove libraries/cmark/nmake.bat
+
+---
+ libraries/cmark/nmake.bat | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/libraries/cmark/nmake.bat b/libraries/cmark/nmake.bat
+index 11d76c9..e69de29 100644
+--- a/libraries/cmark/nmake.bat
++++ b/libraries/cmark/nmake.bat
+@@ -1 +0,0 @@
+-@nmake.exe /nologo /f Makefile.nmake %*
