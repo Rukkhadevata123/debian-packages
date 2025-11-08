@@ -1,5 +1,5 @@
 Source: prismlauncher
-Section: utils
+Section: games
 Priority: optional
 Maintainer: Rukkhadevata123 <rukkhadevata@foxmail.com>
 Build-Depends: debhelper-compat (= 13),
