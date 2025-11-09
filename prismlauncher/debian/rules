@@ -6,9 +6,7 @@ export JAVA_HOME=/usr/lib/jvm/default-java
 	dh $@
 
 override_dh_auto_configure:
-	rm -f libraries/zlib/contrib/dotzlib/DotZLib.chm; \
-	mkdir -p build; \
-	cmake -S . -B build -G Ninja \
+	dh_auto_configure -- \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DENABLE_LTO=ON \
 		-DLauncher_BUILD_PLATFORM=debian \
@@ -18,15 +16,3 @@ override_dh_auto_configure:
 		-DCMAKE_Java_COMPILER="$(JAVA_HOME)/bin/javac" \
 		-DCMAKE_BUILD_TYPE=Release
 
-override_dh_auto_build:
-	cmake --build build
-
-override_dh_auto_test:
-	true
-
-override_dh_auto_install:
-	install -Dm644 debian/copyright debian/prismlauncher/usr/share/doc/prismlauncher/copyright
-	DESTDIR=debian/prismlauncher cmake --install build
-	mkdir -p debian/prismlauncher/usr/games
-	mv debian/prismlauncher/usr/bin/prismlauncher debian/prismlauncher/usr/games/prismlauncher
-	ln -sf ../games/prismlauncher debian/prismlauncher/usr/bin/prismlauncher
