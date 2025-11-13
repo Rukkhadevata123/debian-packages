@@ -11,6 +11,10 @@
 !hmcl/debian/
 !hmcl/debian/**
 
+!podman-desktop/
+!podman-desktop/debian/
+!podman-desktop/debian/**
+
 !prismlauncher/
 !prismlauncher/debian/
 !prismlauncher/debian/**

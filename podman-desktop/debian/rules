@@ -1,0 +1,60 @@
+#!/usr/bin/make -f
+
+_ELECTRON_VER := 38.6.0
+_ELECTRON_PKG_NAME := electron38
+
+export PATH=/usr/share/nodejs/corepack/shims:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+export HOME=/tmp
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	
+	# echo "registry=https://registry.npmmirror.com/" > .npmrc
+
+	sed -i 's/\"electron\"\s*:\s*\"[^\"]*\"/\"electron\": \"'$(_ELECTRON_VER)'\"/' package.json
+	sed -i 's/run.sh/podman-desktop/' '.flatpak.desktop'
+
+	python3 debian/allow-use-npm.py
+	python3 debian/skip-chromium-download.py
+	
+	pnpm install --no-frozen-lockfile
+
+override_dh_auto_build:
+	node_modules/.bin/cross-env MODE=production pnpm run build
+
+	node_modules/.bin/electron-builder build --linux --x64 --dir \
+		-c.electronDist="node_modules/electron/dist" \
+		-c.electronVersion="$(_ELECTRON_VER)" \
+		--config .electron-builder.config.cjs
+
+override_dh_auto_install:
+	install -d  $(CURDIR)/debian/podman-desktop/usr/lib/podman-desktop
+	install -d  $(CURDIR)/debian/podman-desktop/usr/bin
+	install -d  $(CURDIR)/debian/podman-desktop/usr/share/applications
+	install -d  $(CURDIR)/debian/podman-desktop/usr/share/metainfo
+	install -d  $(CURDIR)/debian/podman-desktop/usr/share/icons/hicolor/{scalable,512x512,1024x1024}/apps
+
+	cp -r node_modules/electron/dist  $(CURDIR)/debian/podman-desktop/usr/lib/$(_ELECTRON_PKG_NAME)
+	cp -r dist/linux-unpacked/resources  $(CURDIR)/debian/podman-desktop/usr/lib/podman-desktop/
+
+	install -Dm644 buildResources/icon.svg \
+		 $(CURDIR)/debian/podman-desktop/usr/share/icons/hicolor/scalable/apps/io.podman_desktop.PodmanDesktop.svg
+	install -Dm644 buildResources/icon-512x512.png \
+		 $(CURDIR)/debian/podman-desktop/usr/share/icons/hicolor/512x512/apps/io.podman_desktop.PodmanDesktop.png
+	install -Dm644 buildResources/icon.png \
+		 $(CURDIR)/debian/podman-desktop/usr/share/icons/hicolor/1024x1024/apps/io.podman_desktop.PodmanDesktop.png
+	install -Dm644 .flatpak.desktop \
+		 $(CURDIR)/debian/podman-desktop/usr/share/applications/io.podman_desktop.PodmanDesktop.desktop
+	install -Dm644 .flatpak-appdata.xml \
+		 $(CURDIR)/debian/podman-desktop/usr/share/metainfo/io.podman_desktop.PodmanDesktop.xml
+
+	sed "s/@ELECTRON@/$(_ELECTRON_PKG_NAME)/" $(CURDIR)/debian/run.sh.in >  $(CURDIR)/debian/podman-desktop/usr/bin/podman-desktop
+	chmod 755  $(CURDIR)/debian/podman-desktop/usr/bin/podman-desktop
+
+override_dh_dwz:
+	true
+
+override_dh_strip:
+	true
