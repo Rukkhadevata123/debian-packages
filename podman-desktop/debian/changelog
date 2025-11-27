@@ -1,3 +1,9 @@
+podman-desktop (1.23.1-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Rukkhadevata123 <rukkhadevata@foxmail.com>  Fri, 21 Nov 2025 01:34:59 +0800
+
 podman-desktop (1.22.1-1) unstable; urgency=medium
 
   * Initial Debian release
