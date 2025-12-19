@@ -19,5 +19,9 @@
 !prismlauncher/debian/
 !prismlauncher/debian/**
 
+!resources/
+!resources/debian/
+!resources/debian/**
+
 !man_pages/
 !man_pages/**
