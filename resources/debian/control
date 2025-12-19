@@ -1,0 +1,31 @@
+Source: resources
+Section: utils
+Priority: optional
+Maintainer: Rukkhadevata123 <rukkhadevata@foxmail.com>
+Build-Depends: debhelper-compat (= 13),
+               meson,
+               rustc,
+               cargo,
+               pkg-config,
+               libgtk-4-dev,
+               libadwaita-1-dev,
+               libglib2.0-dev,
+               libgraphene-1.0-dev,
+               libpolkit-gobject-1-dev,
+               desktop-file-utils,
+               appstream
+Standards-Version: 4.7.2
+Homepage: https://apps.gnome.org/Resources/
+Vcs-Git: https://github.com/nokyan/resources.git
+Vcs-Browser: https://github.com/nokyan/resources
+Rules-Requires-Root: no
+
+Package: resources
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Monitor for system resources and processes
+ Resources is a simple yet powerful monitor for system resources and processes,
+ written in Rust and using GTK 4 and Libadwaita.
+ .
+ It provides a modern user interface to view CPU, memory, and network usage,
+ as well as managing running processes.
